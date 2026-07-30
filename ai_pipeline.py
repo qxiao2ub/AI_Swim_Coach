@@ -271,13 +271,55 @@ def _draw_landmarks(frame: np.ndarray, landmarks: Any) -> None:
         cv2.circle(frame, point, 4, (0, 80, 255), -1, cv2.LINE_AA)
 
 
+def get_ffmpeg_executable() -> Optional[str]:
+    """Return a usable FFmpeg executable without requiring an apt package.
+
+    Streamlit Community Cloud can have mixed Debian repositories during base
+    image transitions. Installing ``ffmpeg`` through ``packages.txt`` may then
+    fail before Python dependencies are processed. The ``imageio-ffmpeg``
+    wheel ships a platform-specific executable, so it is preferred as the
+    portable fallback.
+    """
+    system_ffmpeg = shutil.which("ffmpeg")
+    if system_ffmpeg:
+        return system_ffmpeg
+    try:
+        import imageio_ffmpeg
+
+        bundled_ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+        if bundled_ffmpeg and Path(bundled_ffmpeg).is_file():
+            return str(bundled_ffmpeg)
+    except (ImportError, OSError, RuntimeError):
+        return None
+    return None
+
+
 def _transcode_h264(input_path: Path, output_path: Path) -> Optional[Path]:
-    if not shutil.which("ffmpeg"):
+    ffmpeg_executable = get_ffmpeg_executable()
+    if not ffmpeg_executable:
         return None
     command = [
-        "ffmpeg", "-y", "-loglevel", "error", "-i", str(input_path),
-        "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
-        "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output_path),
+        ffmpeg_executable,
+        "-nostdin",
+        "-y",
+        "-loglevel",
+        "error",
+        "-i",
+        str(input_path),
+        "-an",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        "-threads",
+        "1",
+        str(output_path),
     ]
     try:
         subprocess.run(command, check=True, timeout=300)

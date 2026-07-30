@@ -1,46 +1,72 @@
 # AI Swimming Coach - Streamlit Prototype
 
-A GitHub-ready Streamlit application converted from the uploaded Colab notebook. The app accepts a swimming video, extracts pose landmarks, creates an annotated video, generates machine-readable time-series features, produces coach-style recommendations, trains supervised learning baselines, and collects user or coach feedback.
+A GitHub-ready Streamlit application converted from the Colab notebook. The app accepts a swimming video, extracts pose landmarks, creates an annotated video, generates machine-readable time-series features, produces coach-style recommendations, trains supervised-learning baselines, and collects swimmer or coach feedback.
 
 ## Main functions
 
 - Upload MP4, MOV, M4V, AVI, MKV, or WMV video containers.
 - Extract 33 MediaPipe pose landmarks frame by frame.
-- Generate an annotated video and downloadable analysis bundle.
+- Generate an annotated H.264 video and downloadable analysis bundle.
 - Calculate joint angles, body-line deviation, head alignment, kick amplitude, movement speeds, and left-right symmetry features.
 - Train Logistic Regression, Random Forest, Gradient Boosting, XGBoost, and LightGBM demo baselines.
 - Prepare sequence windows for an optional Conv1D plus bidirectional LSTM model.
-- Collect ratings and demonstrate a reward-based recommendation ranking update.
+- Collect ratings and demonstrate a reward-based recommendation-ranking update.
+
+## Streamlit deployment fix
+
+The former repository asked Debian APT to install `ffmpeg`, `libgl1`, and `libglib2.0-0`. The failed Community Cloud log mixed Debian releases and could not satisfy FFmpeg and GLib dependencies, so deployment stopped before Python or `app.py` ran.
+
+This repository avoids that failure:
+
+- `packages.txt` contains only `libgomp1` for the optional ML boosters.
+- `imageio-ffmpeg` supplies a bundled FFmpeg executable through a Python wheel.
+- OpenCV uses the headless contrib build, so desktop `libGL` and GLib packages are unnecessary.
+- `vendor/opencv_contrib_python-4.11.0.86-py3-none-any.whl` is a metadata-only compatibility shim. It satisfies MediaPipe's package-name requirement while installing `opencv-contrib-python-headless`.
+
+See `STREAMLIT_DEPLOYMENT_FIX.md` for details.
 
 ## Repository structure
 
 ```text
 .
 |-- app.py                         Streamlit entrypoint
-|-- ai_pipeline.py                 Reusable computer-vision and AI pipeline
+|-- ai_pipeline.py                 Computer-vision and AI pipeline
 |-- deep_learning_template.py      Optional TensorFlow/Colab template
 |-- requirements.txt               Python dependencies
-|-- packages.txt                   Debian packages for Community Cloud
+|-- packages.txt                   Only libgomp1; no apt FFmpeg/OpenCV stack
+|-- STREAMLIT_DEPLOYMENT_FIX.md    Explanation and redeployment steps
+|-- vendor/
+|   `-- opencv_contrib_python-4.11.0.86-py3-none-any.whl
 |-- .streamlit/config.toml         Upload and visual settings
 |-- notebooks/
 |   `-- Jasper_Ding_AI_Swim_Coach_Streamlit_Compatible.ipynb
 |-- data/.gitkeep
 |-- models/.gitkeep
 |-- outputs/.gitkeep
-`-- tests/test_pipeline_smoke.py
+`-- tests/
+    |-- test_pipeline_smoke.py
+    `-- test_deployment_dependencies.py
 ```
 
 ## Deploy to Streamlit Community Cloud
 
-1. Unzip the downloaded repository package.
-2. Create an empty GitHub repository.
-3. Upload all files and folders inside the unzipped project folder to the root of the GitHub repository.
-4. In Streamlit Community Cloud, create a new app and select the GitHub repository and branch.
-5. Set the main file path to `app.py`.
-6. Open Advanced settings and select Python 3.12.
-7. Deploy the app. The first video analysis downloads and caches the official MediaPipe Pose Landmarker Lite model.
+1. Unzip this package.
+2. Replace the contents of the existing GitHub repository with all files and folders from the ZIP.
+3. Confirm that the root `packages.txt` contains **only**:
 
-`requirements.txt` and `packages.txt` are already placed in the repository root so Community Cloud can install the Python and Linux dependencies automatically.
+   ```text
+   libgomp1
+   ```
+
+4. Commit and push the changes.
+5. In Streamlit Community Cloud, select the repository and branch.
+6. Set the main file path to `app.py`.
+7. In Advanced settings, select Python 3.12.
+8. Reboot the app.
+
+When replacing an existing repository through GitHub's web uploader, verify that the old `packages.txt` was overwritten. If Community Cloud still displays the old FFmpeg APT error, delete the old app deployment and create it again from the updated branch.
+
+The first video analysis downloads and caches the official MediaPipe Pose Landmarker Lite model. The app sidebar includes a Deployment diagnostics panel showing the detected OpenCV, MediaPipe, imageio-ffmpeg, and FFmpeg executable information.
 
 ## Run locally
 
@@ -49,7 +75,8 @@ Use Python 3.12 for the closest match to Community Cloud.
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 

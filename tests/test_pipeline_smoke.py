@@ -101,7 +101,8 @@ class FakePose:
         return None
 
 
-def test_fake_video_extraction(work_dir: Path) -> None:
+def test_fake_video_extraction(tmp_path: Path) -> None:
+    work_dir = tmp_path
     video_path = work_dir / "synthetic.mp4"
     writer = cv2.VideoWriter(
         str(video_path),

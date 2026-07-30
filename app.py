@@ -20,6 +20,7 @@ from ai_pipeline import (
     demo_contextual_bandit_update,
     extract_pose_timeseries,
     generate_recommendations,
+    get_ffmpeg_executable,
     make_sequence_windows,
     save_outputs,
     summarize_video,
@@ -195,6 +196,20 @@ with st.sidebar:
     )
     st.divider()
     st.caption("Recommended input: a 5-20 second clip with the full swimmer visible. H.264 MP4 is the most reliable format.")
+    with st.expander("Deployment diagnostics"):
+        try:
+            import cv2
+            import mediapipe as mp
+            import imageio_ffmpeg
+
+            st.write({
+                "OpenCV": cv2.__version__,
+                "MediaPipe": mp.__version__,
+                "Bundled FFmpeg": get_ffmpeg_executable() or "Unavailable",
+                "imageio-ffmpeg": getattr(imageio_ffmpeg, "__version__", "unknown"),
+            })
+        except Exception as diagnostic_error:
+            st.warning(f"Dependency diagnostic failed: {diagnostic_error}")
     if st.session_state.analysis is not None:
         if st.button("Clear current analysis", use_container_width=True):
             _reset_analysis()
