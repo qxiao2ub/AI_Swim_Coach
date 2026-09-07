@@ -1,5 +1,8 @@
 """Core AI pipeline for the AI Swimming Coach Streamlit prototype.
 
+Author: Jasper Ding
+Advisor: Dr. Qingyang Xiao
+
 The module is deliberately framework-independent so the same functions can be
 used from Streamlit, Colab, scripts, and tests.
 """

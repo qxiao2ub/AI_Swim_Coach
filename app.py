@@ -1,4 +1,8 @@
-"""Streamlit Community Cloud entrypoint for the AI Swimming Coach prototype."""
+"""Streamlit Community Cloud entrypoint for the AI Swimming Coach prototype.
+
+Author: Jasper Ding
+Advisor: Dr. Qingyang Xiao
+"""
 
 from __future__ import annotations
 
@@ -29,6 +33,8 @@ from ai_pipeline import (
 
 APP_TITLE = "AI Swimming Coach"
 APP_SUBTITLE = "Video pose analysis, time-series features, coaching insights, and trainable AI baselines"
+AUTHOR_NAME = "Jasper Ding"
+ADVISOR_NAME = "Dr. Qingyang Xiao"
 SUPPORTED_EXTENSIONS = ["mp4", "mov", "m4v", "avi", "mkv", "wmv"]
 
 st.set_page_config(
@@ -52,6 +58,14 @@ st.markdown(
     }
     .hero h1 {font-size: 2.35rem; margin: 0 0 .35rem 0;}
     .hero p {font-size: 1.03rem; margin: 0; opacity: .92;}
+    .hero .credits {font-size: .93rem; margin-top: .72rem; opacity: .96;}
+    .team-card {
+        border: 1px solid rgba(49, 70, 89, .16);
+        border-radius: 12px;
+        padding: .8rem .9rem;
+        background: rgba(250, 252, 253, .78);
+        margin-bottom: .8rem;
+    }
     .small-note {font-size: .88rem; color: #5f6b76;}
     .rec-card {
         border: 1px solid rgba(49, 70, 89, .18);
@@ -149,6 +163,7 @@ st.markdown(
     <div class="hero">
       <h1>{APP_TITLE}</h1>
       <p>{APP_SUBTITLE}</p>
+      <div class="credits"><strong>Author:</strong> {AUTHOR_NAME} &nbsp;&nbsp; | &nbsp;&nbsp; <strong>Advisor:</strong> {ADVISOR_NAME}</div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -159,6 +174,9 @@ st.info(
 )
 
 with st.sidebar:
+    st.markdown("### Project team")
+    st.markdown(f"**Author:** {AUTHOR_NAME}  \n**Advisor:** {ADVISOR_NAME}")
+    st.divider()
     st.header("Analysis settings")
     max_frames = st.slider(
         "Maximum processed frames",
@@ -647,6 +665,11 @@ with feedback_tab:
         st.caption("Community Cloud storage is temporary. Download feedback before the app restarts or redeploys.")
 
 with about_tab:
+    st.subheader("Project team")
+    team_left, team_right = st.columns(2)
+    team_left.markdown(f"**Author**  \n{AUTHOR_NAME}")
+    team_right.markdown(f"**Advisor**  \n{ADVISOR_NAME}")
+    st.divider()
     st.subheader("Prototype architecture")
     st.markdown(
         "1. **Input:** uploaded swimming video.\n"

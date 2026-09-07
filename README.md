@@ -2,6 +2,12 @@
 
 A GitHub-ready Streamlit application converted from the Colab notebook. The app accepts a swimming video, extracts pose landmarks, creates an annotated video, generates machine-readable time-series features, produces coach-style recommendations, trains supervised-learning baselines, and collects swimmer or coach feedback.
 
+## Project team
+
+- **Author:** Jasper Ding
+- **Advisor:** Dr. Qingyang Xiao
+
+
 ## Main functions
 
 - Upload MP4, MOV, M4V, AVI, MKV, or WMV video containers.

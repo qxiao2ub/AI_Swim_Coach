@@ -1,5 +1,8 @@
 """Optional TensorFlow training template for the AI Swimming Coach project.
 
+Author: Jasper Ding
+Advisor: Dr. Qingyang Xiao
+
 Run this in Google Colab after producing a feature CSV with coach-supplied labels.
 The Streamlit Community Cloud deployment intentionally does not install
 TensorFlow by default.
