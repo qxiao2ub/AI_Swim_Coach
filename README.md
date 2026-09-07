@@ -1,4 +1,4 @@
-# AI Swimming Coach - Streamlit Prototype
+# AI Swimming Coach
 
 A GitHub-ready Streamlit application converted from the Colab notebook. The app accepts a swimming video, extracts pose landmarks, creates an annotated video, generates machine-readable time-series features, produces coach-style recommendations, trains supervised-learning baselines, and collects swimmer or coach feedback.
 
