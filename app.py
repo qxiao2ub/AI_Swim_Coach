@@ -7,14 +7,65 @@ Advisor: Dr. Qingyang Xiao
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import pandas as pd
 import streamlit as st
+
+APP_TITLE = "AI Swimming Coach"
+APP_SUBTITLE = "Video pose analysis, time-series features, coaching insights, and trainable AI baselines"
+AUTHOR_NAME = "Jasper Ding"
+ADVISOR_NAME = "Dr. Qingyang Xiao"
+SUPPORTED_EXTENSIONS = ["mp4", "mov", "m4v", "avi", "mkv", "wmv"]
+REQUIRED_PYTHON = (3, 12)
+
+st.set_page_config(
+    page_title=APP_TITLE,
+    page_icon="SW",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# MediaPipe's published Python support for this build ends at Python 3.12.
+# Keep this check before pandas, NumPy, OpenCV, MediaPipe, and ai_pipeline imports
+# so an accidentally deployed Python 3.13/3.14 app opens a repair screen instead
+# of attempting long source builds during dependency installation.
+if sys.version_info[:2] != REQUIRED_PYTHON:
+    detected = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    st.title(APP_TITLE)
+    st.error(
+        f"This deployment is running Python {detected}. "
+        "The full AI video-analysis stack requires Python 3.12."
+    )
+    st.markdown(
+        """
+        **One-time Streamlit Community Cloud repair**
+
+        1. Open **Manage app** and record the repository, branch, app URL, and any secrets.
+        2. Delete the current Community Cloud app. Python cannot be changed in place.
+        3. Create the app again from this GitHub repository.
+        4. Set the main file path to `app.py`.
+        5. Open **Advanced settings** and select **Python 3.12**.
+        6. Deploy. The same custom subdomain can be reused immediately.
+
+        The repository also contains `.python-version` and `runtime.txt` as local-hosting hints,
+        but Community Cloud's Python selector is the setting that controls the deployed runtime.
+        """
+    )
+    st.code(
+        "Required runtime: Python 3.12\n"
+        "Streamlit entry point: app.py\n"
+        f"Detected runtime: Python {detected}",
+        language="text",
+    )
+    st.stop()
+
+import pandas as pd
 
 from ai_pipeline import (
     DEFAULT_FEATURE_COLUMNS,
@@ -29,19 +80,6 @@ from ai_pipeline import (
     save_outputs,
     summarize_video,
     train_supervised_models,
-)
-
-APP_TITLE = "AI Swimming Coach"
-APP_SUBTITLE = "Video pose analysis, time-series features, coaching insights, and trainable AI baselines"
-AUTHOR_NAME = "Jasper Ding"
-ADVISOR_NAME = "Dr. Qingyang Xiao"
-SUPPORTED_EXTENSIONS = ["mp4", "mov", "m4v", "avi", "mkv", "wmv"]
-
-st.set_page_config(
-    page_title=APP_TITLE,
-    page_icon="SW",
-    layout="wide",
-    initial_sidebar_state="expanded",
 )
 
 st.markdown(
@@ -215,19 +253,35 @@ with st.sidebar:
     st.divider()
     st.caption("Recommended input: a 5-20 second clip with the full swimmer visible. H.264 MP4 is the most reliable format.")
     with st.expander("Deployment diagnostics"):
-        try:
-            import cv2
-            import mediapipe as mp
-            import imageio_ffmpeg
+        st.write(
+            {
+                "Python": sys.version.split()[0],
+                "Required Python": "3.12",
+                "XGBoost installed": importlib.util.find_spec("xgboost") is not None,
+                "LightGBM installed": importlib.util.find_spec("lightgbm") is not None,
+            }
+        )
+        if st.button(
+            "Run computer-vision dependency check",
+            key="run_dependency_diagnostics",
+            use_container_width=True,
+        ):
+            try:
+                import cv2
+                import imageio_ffmpeg
+                import mediapipe as mp
 
-            st.write({
-                "OpenCV": cv2.__version__,
-                "MediaPipe": mp.__version__,
-                "Bundled FFmpeg": get_ffmpeg_executable() or "Unavailable",
-                "imageio-ffmpeg": getattr(imageio_ffmpeg, "__version__", "unknown"),
-            })
-        except Exception as diagnostic_error:
-            st.warning(f"Dependency diagnostic failed: {diagnostic_error}")
+                st.success("Core computer-vision dependencies imported successfully.")
+                st.write(
+                    {
+                        "OpenCV": cv2.__version__,
+                        "MediaPipe": mp.__version__,
+                        "Bundled FFmpeg": get_ffmpeg_executable() or "Unavailable",
+                        "imageio-ffmpeg": getattr(imageio_ffmpeg, "__version__", "unknown"),
+                    }
+                )
+            except Exception as diagnostic_error:
+                st.warning(f"Dependency diagnostic failed: {diagnostic_error}")
     if st.session_state.analysis is not None:
         if st.button("Clear current analysis", use_container_width=True):
             _reset_analysis()
@@ -336,7 +390,7 @@ if analysis is None:
         ("Annotated video", "Pose landmarks and body connections overlaid on the uploaded clip."),
         ("Time-series data", "Frame-level landmarks, joint angles, movement speeds, symmetry gaps, and alignment features."),
         ("Coaching insights", "Transparent rule-based evidence, suggestions, and training drills."),
-        ("Trainable AI", "Random Forest, Gradient Boosting, XGBoost, LightGBM, and a Conv1D plus BiLSTM design."),
+        ("Trainable AI", "Cloud-ready Logistic Regression, Random Forest, and Gradient Boosting; optional XGBoost, LightGBM, and Conv1D plus BiLSTM extensions."),
         ("Feedback learning", "A coach/user rating loop that updates recommendation priorities."),
     ]
     for left, right in feature_columns:
@@ -471,11 +525,21 @@ with ml_tab:
     with labels_col:
         n_labels = st.slider("Number of demo patterns", 2, 5, 3)
     with booster_col:
-        include_boosters = st.checkbox(
-            "Include XGBoost and LightGBM",
-            value=True,
-            help="These models take longer to train than the scikit-learn baselines.",
+        boosters_available = (
+            importlib.util.find_spec("xgboost") is not None
+            and importlib.util.find_spec("lightgbm") is not None
         )
+        include_boosters = st.checkbox(
+            "Include optional XGBoost and LightGBM",
+            value=False,
+            disabled=not boosters_available,
+            help=(
+                "These optional packages are intentionally excluded from the fast Community Cloud build. "
+                "Install requirements-optional-boosters.txt locally or in Colab to enable them."
+            ),
+        )
+        if not boosters_available:
+            st.caption("Cloud-fast mode: Logistic Regression, Random Forest, and Gradient Boosting are enabled.")
 
     if st.button("Train supervised models", type="primary", use_container_width=True):
         try:
@@ -676,7 +740,7 @@ with about_tab:
         "2. **Computer vision:** MediaPipe Pose Landmarker extracts 33 body landmarks.\n"
         "3. **Feature engineering:** joint angles, body alignment, speed, kick amplitude, and symmetry time series.\n"
         "4. **Recommendation engine:** transparent rules generate evidence, suggestions, and drills.\n"
-        "5. **Supervised learning:** Logistic Regression, Random Forest, Gradient Boosting, XGBoost, and LightGBM baselines.\n"
+        "5. **Supervised learning:** Logistic Regression, Random Forest, and Gradient Boosting run in the cloud build; XGBoost and LightGBM remain optional.\n"
         "6. **Deep learning:** optional Conv1D plus BiLSTM model in Colab.\n"
         "7. **Feedback learning:** ratings update action priorities through a reward-ranking demonstration."
     )

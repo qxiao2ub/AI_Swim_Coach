@@ -1,28 +1,45 @@
-# Streamlit Community Cloud deployment fix
+# Streamlit Community Cloud deployment fixes
 
-## What failed
+## Current symptom: installation appears stuck after package resolution
 
-The previous `packages.txt` requested Debian `ffmpeg`, `libgl1`, and
-`libglib2.0-0`. The Community Cloud build log showed packages from different
-Debian releases, so APT could not satisfy FFmpeg's `libavcodec61` and GLib
-requirements. The build stopped before Python packages or `app.py` were run.
+The deployment log in the reported screenshot showed:
 
-## What changed
+```text
+Using Python 3.14.7 environment
+Resolved 67 packages
+```
 
-1. `packages.txt` now contains only `libgomp1`, which is used by LightGBM and
-   XGBoost and was already available in the failed build log.
-2. `imageio-ffmpeg` provides a bundled FFmpeg executable through Python, so the
-   Debian FFmpeg package is no longer required.
-3. OpenCV is installed as `opencv-contrib-python-headless`, avoiding desktop
-   `libGL` and `libglib` requirements.
-4. A metadata-only compatibility wheel in `vendor/` satisfies MediaPipe's
-   package-name dependency on `opencv-contrib-python` while redirecting it to
-   the headless wheel.
-5. The Streamlit sidebar includes a deployment diagnostic panel.
+The application was created with Python 3.14, while the computer-vision stack in this repository is designed and tested for Python 3.12. Several packages are compiled binary distributions. A mismatched runtime can leave the installer searching for compatible wheels or attempting expensive builds after resolution.
 
-## Redeployment
+### Current fix
 
-Replace all files in the GitHub repository with this fixed repository. In
-particular, make sure the old `packages.txt` is overwritten. Commit and push,
-then reboot the Streamlit app. If the old APT log still appears, delete the app
-from Community Cloud and deploy it again from the updated branch.
+- The repository requires a new Community Cloud deployment using **Python 3.12**.
+- `requirements.txt` includes `--only-binary=:all:` so Community Cloud never attempts slow source builds.
+- Full AI/video dependencies use Python-version markers and install only on Python 3.12.
+- On an accidental Python 3.13/3.14 deployment, only Streamlit is installed; `app.py` then displays an immediate runtime repair page.
+- XGBoost and LightGBM are optional and are not installed in the default cloud build.
+- `.python-version` and `runtime.txt` document the intended runtime, but the Community Cloud **Advanced settings** selector controls the actual deployment.
+
+## Earlier symptom: APT dependency conflict
+
+An older `packages.txt` requested Debian `ffmpeg`, `libgl1`, and `libglib2.0-0`. The build mixed incompatible Debian package versions and could not satisfy FFmpeg and GLib dependencies. The build stopped before Python or `app.py` ran.
+
+### Earlier fix retained here
+
+- `packages.txt` is now intentionally empty.
+- `imageio-ffmpeg` supplies a bundled FFmpeg executable from a Python wheel.
+- OpenCV uses a headless build, so desktop `libGL` and GLib packages are unnecessary.
+- The small wheel in `vendor/` satisfies MediaPipe's declared OpenCV package name while redirecting installation to the headless contrib package.
+
+## Required redeployment procedure
+
+1. Push all files from this repository to GitHub.
+2. Verify that the old contents of `requirements.txt` and `packages.txt` were replaced.
+3. Open Streamlit Community Cloud and record any secrets or custom subdomain.
+4. Delete the existing app whose logs show Python 3.14.
+5. Create the app again from the same repository and branch.
+6. Use `app.py` as the main file.
+7. In **Advanced settings**, select **Python 3.12**.
+8. Deploy and verify that the log says Python 3.12.
+
+Rebooting the existing Python 3.14 deployment does not change its Python runtime.

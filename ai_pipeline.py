@@ -863,7 +863,7 @@ def train_supervised_models(
     output_dir: str | Path = "models",
     test_size: float = 0.30,
     seed: int = 42,
-    include_optional_boosters: bool = True,
+    include_optional_boosters: bool = False,
 ) -> Dict[str, Any]:
     from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
     from sklearn.impute import SimpleImputer

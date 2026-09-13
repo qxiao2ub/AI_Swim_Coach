@@ -1,18 +1,18 @@
-# Streamlit Community Cloud - Python 3.12
-streamlit==1.59.2
+# Streamlit Community Cloud deployment requirements.
+# The application is fully supported on Python 3.12. The markers intentionally
+# skip the compiled video/AI stack on a mistakenly selected Python 3.13/3.14
+# runtime so the app can open a clear redeployment screen instead of attempting
+# slow source builds.
 
-# MediaPipe currently declares the desktop OpenCV package. This local metadata
-# shim redirects that dependency to the headless contrib wheel, avoiding libGL
-# and libglib apt conflicts on Community Cloud.
-./vendor/opencv_contrib_python-4.11.0.86-py3-none-any.whl
-mediapipe==0.10.35
+--only-binary=:all:
 
-# Bundled FFmpeg executable; no Debian ffmpeg package is required.
-imageio-ffmpeg==0.6.0
+streamlit==1.63.0
 
-numpy==1.26.4
-pandas==2.2.3
-scikit-learn>=1.6,<1.9
-joblib>=1.4,<2
-xgboost>=2.1,<4
-lightgbm>=4.5,<5
+# Full AI/video stack: install only on the supported Community Cloud runtime.
+./vendor/opencv_contrib_python-4.11.0.86-py3-none-any.whl ; python_version >= "3.12" and python_version < "3.13"
+mediapipe==0.10.35 ; python_version >= "3.12" and python_version < "3.13"
+imageio-ffmpeg==0.6.0 ; python_version >= "3.12" and python_version < "3.13"
+numpy==1.26.4 ; python_version >= "3.12" and python_version < "3.13"
+pandas==2.2.3 ; python_version >= "3.12" and python_version < "3.13"
+scikit-learn==1.8.0 ; python_version >= "3.12" and python_version < "3.13"
+joblib==1.5.3 ; python_version >= "3.12" and python_version < "3.13"
